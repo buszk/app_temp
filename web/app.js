@@ -84,6 +84,9 @@ async function onGenerateVariant() {
   const used = typeof result === 'object' && result.usedOpenAI;
   const err = typeof result === 'object' && result.error;
   $('#mod-text').value = text || '';
+  if (err) {
+    alert(`OpenAI error: ${err}`);
+  }
   const genStatus = document.getElementById('gen-status');
   if (genStatus) {
     if (used) genStatus.textContent = 'Generated with OpenAI';
