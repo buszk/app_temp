@@ -15,9 +15,10 @@ Usage
 - Customize tab:
   - Select a school and click Generate Variant. Edit on the right.
   - Review the word/char-level diff preview.
-  - Choose an export directory, then Commit to write `personal_statement.txt` into a folder named after the school.
+  - Choose an export directory.
+  - Import From Directory: scan the chosen directory for subfolders and load each `personal_statement.txt` back into the app as variants.
+  - Commit to write `personal_statement.txt` into a folder named after the school and save the variant locally.
 
 Notes
 - No server storage; all data is local.
 - If the File System Access API is not supported, you’ll see a message. You can still generate and copy content manually.
-

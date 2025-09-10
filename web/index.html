@@ -27,6 +27,14 @@
           <button id="save-template">Save Template</button>
           <span id="template-status" class="status"></span>
         </div>
+
+        <h3 style="margin-top:16px">OpenAI (optional)</h3>
+        <div class="row wrap">
+          <input id="openai-key" type="password" placeholder="OpenAI API Key (sk-...)" style="min-width:320px" />
+          <button id="save-openai-key">Save API Key</button>
+          <span id="openai-status" class="status"></span>
+        </div>
+        <p class="muted">Key is stored locally in your browser. Calls are made directly from your browser and may require serving this app over http(s) due to CORS.</p>
       </section>
 
       <section id="tab-schools" class="tab">
@@ -45,6 +53,15 @@
           <label for="school-select">Select school:</label>
           <select id="school-select"></select>
           <button id="generate-variant">Generate Variant</button>
+        </div>
+
+        <div style="margin: 8px 0 4px;">
+          <label for="prompt-input"><strong>Prompt Template</strong> (uses {{SCHOOL}} and {{TEMPLATE}}):</label>
+          <textarea id="prompt-input" placeholder="Edit the prompt used to guide the LLM..."></textarea>
+          <div class="row">
+            <button id="save-prompt">Save Prompt</button>
+            <span id="prompt-status" class="status"></span>
+          </div>
         </div>
 
         <div class="panes">
@@ -67,6 +84,10 @@
           <button id="choose-root">Choose Export Directory</button>
           <span id="root-path" class="muted"></span>
         </div>
+        <div class="row wrap">
+          <button id="import-variants">Import From Directory</button>
+          <span id="import-status" class="status"></span>
+        </div>
         <div class="row">
           <button id="commit-variant">Commit to School Folder</button>
           <span id="commit-status" class="status"></span>
@@ -81,4 +102,3 @@
     <script type="module" src="./app.js"></script>
   </body>
   </html>
-

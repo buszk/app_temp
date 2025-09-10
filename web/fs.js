@@ -41,5 +41,22 @@ export const fsapi = {
     await writable.write(content);
     await writable.close();
   },
+  async importAll() {
+    if (!rootHandle) throw new Error('No directory chosen to import from.');
+    if (!(await verifyPermission(rootHandle, false))) throw new Error('Permission not granted to read directory.');
+    const result = {};
+    for await (const [name, entry] of rootHandle.entries()) {
+      try {
+        if (entry.kind === 'directory') {
+          const fileHandle = await entry.getFileHandle('personal_statement.txt');
+          const file = await fileHandle.getFile();
+          const text = await file.text();
+          result[name] = text;
+        }
+      } catch {
+        // ignore folders without the expected file
+      }
+    }
+    return result;
+  },
 };
-
