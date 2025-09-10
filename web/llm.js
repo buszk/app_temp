@@ -26,31 +26,30 @@ function fillPrompt(tpl, values) {
 
 // Pluggable LLM adapter. Tries OpenAI if configured, otherwise local transform.
 export const llm = {
+  // Returns { text, usedOpenAI, error }
   async generate(template, school) {
     const key = storage.getOpenAIKey();
     const promptTpl = storage.getPrompt();
     const schoolName = (school || '').trim();
 
-    // If no key, fallback to deterministic local replacement
+    const localText = template.replaceAll('<CUSTOMIZE_TO_SCHOOL>', schoolName);
     if (!key) {
-      return template.replaceAll('<CUSTOMIZE_TO_SCHOOL>', schoolName);
+      return { text: localText, usedOpenAI: false };
     }
 
-    // Build prompt
     const userPrompt = fillPrompt(promptTpl, { template, school: schoolName });
     try {
       const model = 'gpt-4o-mini';
       const output = await openaiChat({
         apiKey: key,
         model,
-        messages: [
-          { role: 'user', content: userPrompt },
-        ],
+        messages: [ { role: 'user', content: userPrompt } ],
       });
-      return output || template.replaceAll('<CUSTOMIZE_TO_SCHOOL>', schoolName);
+      const text = output || localText;
+      return { text, usedOpenAI: Boolean(output && output.length) };
     } catch (err) {
       console.warn('OpenAI call failed, falling back to local transform:', err);
-      return template.replaceAll('<CUSTOMIZE_TO_SCHOOL>', schoolName);
+      return { text: localText, usedOpenAI: false, error: err?.message || String(err) };
     }
   },
 };

@@ -79,8 +79,17 @@ function updateDiff() {
 async function onGenerateVariant() {
   const tmpl = $('#orig-text').value || '';
   const school = $('#school-select').value || '';
-  const out = await llm.generate(tmpl, school);
-  $('#mod-text').value = out;
+  const result = await llm.generate(tmpl, school);
+  const text = typeof result === 'string' ? result : result.text;
+  const used = typeof result === 'object' && result.usedOpenAI;
+  const err = typeof result === 'object' && result.error;
+  $('#mod-text').value = text || '';
+  const genStatus = document.getElementById('gen-status');
+  if (genStatus) {
+    if (used) genStatus.textContent = 'Generated with OpenAI';
+    else genStatus.textContent = err ? 'Fell back (OpenAI error)' : 'Generated locally';
+    setTimeout(()=> genStatus.textContent = '', 1600);
+  }
   updateDiff();
 }
 
@@ -189,6 +198,14 @@ function bootstrap() {
   refreshSchoolSelect();
   updateDiff();
   initEvents();
+  // Optional: pick up a global key if present
+  try {
+    if (!storage.getOpenAIKey() && window.OPENAI_API_KEY) {
+      storage.setOpenAIKey(String(window.OPENAI_API_KEY));
+      const keyEl = document.getElementById('openai-key');
+      if (keyEl) keyEl.value = String(window.OPENAI_API_KEY);
+    }
+  } catch {}
   if (!fsapi.isSupported()) $('#root-path').textContent = 'File System Access API not supported in this browser. Use a Chromium browser over http(s).';
 }
 
