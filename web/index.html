@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Med School PS Manager</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Personal Statement Manager</h1>
+      <p class="subtitle">Local-only web app for customizing PS per school</p>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="template">Template</button>
+      <button class="tab-btn" data-tab="schools">Schools</button>
+      <button class="tab-btn" data-tab="customize">Customize</button>
+    </nav>
+
+    <main>
+      <section id="tab-template" class="tab active">
+        <h2>Template</h2>
+        <p>Use <code>&lt;CUSTOMIZE_TO_SCHOOL&gt;</code> where school-specific content should go.</p>
+        <textarea id="template-input" placeholder="Write your base personal statement template here..."></textarea>
+        <div class="row">
+          <button id="save-template">Save Template</button>
+          <span id="template-status" class="status"></span>
+        </div>
+      </section>
+
+      <section id="tab-schools" class="tab">
+        <h2>Schools</h2>
+        <div class="row">
+          <input id="school-name" placeholder="Add school name" />
+          <button id="add-school">Add</button>
+        </div>
+        <ul id="school-list" class="list"></ul>
+      </section>
+
+      <section id="tab-customize" class="tab">
+        <h2>Customize & Commit</h2>
+
+        <div class="row">
+          <label for="school-select">Select school:</label>
+          <select id="school-select"></select>
+          <button id="generate-variant">Generate Variant</button>
+        </div>
+
+        <div class="panes">
+          <div class="pane">
+            <h3>Original Template</h3>
+            <textarea id="orig-text" readonly></textarea>
+          </div>
+          <div class="pane">
+            <h3>Modified Version (editable)</h3>
+            <textarea id="mod-text" placeholder="Generated or edited variant will appear here..."></textarea>
+          </div>
+        </div>
+
+        <div>
+          <h3>Diff Preview</h3>
+          <div id="diff-view" class="diff"></div>
+        </div>
+
+        <div class="row wrap">
+          <button id="choose-root">Choose Export Directory</button>
+          <span id="root-path" class="muted"></span>
+        </div>
+        <div class="row">
+          <button id="commit-variant">Commit to School Folder</button>
+          <span id="commit-status" class="status"></span>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <small>All data is stored locally in your browser and filesystem. No server involved.</small>
+    </footer>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+  </html>
+
