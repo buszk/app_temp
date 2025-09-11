@@ -17,6 +17,9 @@ Usage
   - Select a school and click Generate Variant. Edit on the right.
   - Review the word/char-level diff preview.
   - Prompt supports placeholders: `{{SCHOOL}}`, `{{TEMPLATE}}`, `{{RESEARCH}}`, `{{TAGS}}`. Use Reset to Default to restore the built-in prompt.
+  - If File System Access API isn’t supported, use:
+    - Download Variant / Copy to Clipboard for the current school.
+    - Download All Variants (ZIP) to get a zip with `School Name/personal_statement.txt` for each saved variant.
   - Choose an export directory.
   - Import From Directory: scan the chosen directory for subfolders and load each `personal_statement.txt` back into the app as variants.
   - Commit to write `personal_statement.txt` into a folder named after the school and save the variant locally.

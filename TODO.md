@@ -99,3 +99,9 @@ We are building an application management system to help medical school applican
   - `web/storage.js` DEFAULT_PROMPT extended.
   - `web/llm.js` fills the new placeholders from school metadata.
 - Research is prioritized in instructions; if insufficient, the model is told to avoid fabricating specifics.
+
+## Task 5 - Make sure key features work [DONE]
+
+- Download Variant now pulls from the editor or saved variant, and warns if empty.
+- Copy to Clipboard works in secure and insecure contexts (fallback to execCommand), and pulls from saved variant if editor is empty.
+- Added "Download All Variants (ZIP)" using a minimal in-browser ZIP (store-only) implementation, packaging each saved variant under `School Name/personal_statement.txt`.

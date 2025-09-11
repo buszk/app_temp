@@ -2,6 +2,7 @@ import { storage, DEFAULT_PROMPT } from './storage.js';
 import { fsapi } from './fs.js';
 import { llm } from './llm.js';
 import { computeDiff, renderDiff } from './diff.js';
+import { createZip } from './zip.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -193,7 +194,16 @@ function initEvents() {
   const dlBtn = document.getElementById('download-variant');
   if (dlBtn) dlBtn.addEventListener('click', () => {
     const school = $('#school-select').value || 'school';
-    const content = $('#mod-text').value || '';
+    let content = $('#mod-text').value || '';
+    if (!content.trim()) {
+      // Try stored variant as fallback
+      const stored = storage.getVariant(school);
+      if (stored && stored.trim()) content = stored;
+    }
+    if (!content.trim()) {
+      alert('No content to download. Generate or paste a variant first.');
+      return;
+    }
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -208,12 +218,54 @@ function initEvents() {
 
   const copyBtn = document.getElementById('copy-variant');
   if (copyBtn) copyBtn.addEventListener('click', async () => {
+    let text = $('#mod-text').value || '';
+    const school = $('#school-select').value || '';
+    if (!text.trim() && school) {
+      const stored = storage.getVariant(school);
+      if (stored && stored.trim()) text = stored;
+    }
+    if (!text.trim()) { alert('No content to copy.'); return; }
     try {
-      await navigator.clipboard.writeText($('#mod-text').value || '');
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for insecure contexts
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
       showFallbackStatus('Copied to clipboard.');
     } catch (e) {
       alert('Copy failed: ' + (e.message || String(e)));
     }
+  });
+
+  // Download all variants as ZIP
+  const zipBtn = document.getElementById('download-zip-all');
+  if (zipBtn) zipBtn.addEventListener('click', () => {
+    const schools = storage.getSchools();
+    const files = [];
+    for (const s of schools) {
+      const v = storage.getVariant(s);
+      if (v && v.trim()) {
+        files.push({ path: `${s}/personal_statement.txt`, content: v });
+      }
+    }
+    if (!files.length) { alert('No saved variants to include in ZIP.'); return; }
+    const zipBlob = createZip(files);
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'personal_statements.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showFallbackStatus('Downloaded ZIP of all variants.');
   });
 
   // Optional: Save OpenAI API key
