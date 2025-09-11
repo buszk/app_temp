@@ -12,12 +12,15 @@ How to Run
 Usage
 - Template tab: write your base PS with `<CUSTOMIZE_TO_SCHOOL>` placeholder. Save it.
 - Schools tab: add/remove schools.
+- In Schools tab, select a school to add authoritative Research findings and Tags. Research is injected into the LLM prompt with highest priority to avoid hallucinations.
 - Customize tab:
   - Select a school and click Generate Variant. Edit on the right.
   - Review the word/char-level diff preview.
+  - Prompt supports placeholders: `{{SCHOOL}}`, `{{TEMPLATE}}`, `{{RESEARCH}}`, `{{TAGS}}`. Use Reset to Default to restore the built-in prompt.
   - Choose an export directory.
   - Import From Directory: scan the chosen directory for subfolders and load each `personal_statement.txt` back into the app as variants.
   - Commit to write `personal_statement.txt` into a folder named after the school and save the variant locally.
+  - If your browser doesn’t support File System Access, use Download Variant or Copy to Clipboard as a fallback.
 
 Notes
 - No server storage; all data is local.

@@ -76,6 +76,26 @@ button:hover { border-color: var(--accent); }
   margin-bottom: 8px;
 }
 
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.tag button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+
 .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pane h3 { margin: 12px 0 6px; }
 
@@ -98,4 +118,3 @@ button:hover { border-color: var(--accent); }
 footer { margin-top: 24px; color: var(--muted); }
 
 @media (max-width: 920px) { .panes { grid-template-columns: 1fr; } }
-

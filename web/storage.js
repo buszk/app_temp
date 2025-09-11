@@ -3,13 +3,23 @@ const KEY_SCHOOLS = 'ps_schools_v1';
 const KEY_OPENAI = 'ps_openai_key_v1';
 const KEY_PROMPT = 'ps_prompt_v1';
 const KEY_VARIANTS = 'ps_variants_v1';
+const KEY_SCHOOL_META = 'ps_school_meta_v1';
 
 export const DEFAULT_PROMPT = `You are an expert editor helping tailor a medical school personal statement.
 
-Task: Rewrite the full statement by integrating a compelling, school-specific paragraph where the tag <CUSTOMIZE_TO_SCHOOL> appears. The customized content should:
-- Highlight what makes {{SCHOOL}} unique (programs, mission, location, values).
+Authoritative facts (highest priority):
+{{RESEARCH}}
+
+Tags (optional context):
+{{TAGS}}
+
+Task: Rewrite the full statement by customizing the paragraph where tag <CUSTOMIZE_TO_SCHOOL> appears. The customized content must:
+- Prioritize and strictly follow the applicant-provided research facts above about {{SCHOOL}}. Do not invent programs, statistics, or partnerships.
+- If details are insufficient, keep statements generic rather than hallucinating specifics.
+- Highlight what makes {{SCHOOL}} unique (mission, programs, values) using only supported facts.
 - Explain why the applicant is a strong fit specifically for {{SCHOOL}}.
 - Maintain the original tone, voice, and structure as much as possible.
+- Do not add more than 50 words.
 
 Input statement:
 {{TEMPLATE}}
@@ -70,6 +80,9 @@ export const storage = {
     const val = (prompt || '').trim();
     localStorage.setItem(KEY_PROMPT, val || DEFAULT_PROMPT);
   },
+  resetPrompt() {
+    try { localStorage.removeItem(KEY_PROMPT); } catch {}
+  },
 
   // Variants storage (school -> text)
   getAllVariants() {
@@ -92,5 +105,49 @@ export const storage = {
     const all = this.getAllVariants();
     delete all[school];
     localStorage.setItem(KEY_VARIANTS, JSON.stringify(all));
+  },
+  // School metadata (research, tags)
+  _getAllMeta() {
+    try {
+      const raw = localStorage.getItem(KEY_SCHOOL_META);
+      const obj = raw ? JSON.parse(raw) : {};
+      return obj && typeof obj === 'object' ? obj : {};
+    } catch { return {}; }
+  },
+  _setAllMeta(obj) {
+    localStorage.setItem(KEY_SCHOOL_META, JSON.stringify(obj || {}));
+  },
+  getSchoolMeta(school) {
+    const all = this._getAllMeta();
+    const meta = all[school] || {};
+    return {
+      research: typeof meta.research === 'string' ? meta.research : '',
+      tags: Array.isArray(meta.tags) ? meta.tags : [],
+    };
+  },
+  setSchoolResearch(school, research) {
+    const all = this._getAllMeta();
+    const meta = all[school] || {};
+    meta.research = research || '';
+    meta.tags = Array.isArray(meta.tags) ? meta.tags : [];
+    all[school] = meta;
+    this._setAllMeta(all);
+  },
+  addSchoolTag(school, tag) {
+    const clean = (tag || '').trim();
+    if (!clean) return;
+    const all = this._getAllMeta();
+    const meta = all[school] || { research: '', tags: [] };
+    meta.tags = Array.isArray(meta.tags) ? meta.tags : [];
+    if (!meta.tags.includes(clean)) meta.tags.push(clean);
+    all[school] = meta;
+    this._setAllMeta(all);
+  },
+  removeSchoolTag(school, tag) {
+    const all = this._getAllMeta();
+    const meta = all[school] || { research: '', tags: [] };
+    meta.tags = (Array.isArray(meta.tags) ? meta.tags : []).filter((t) => t !== tag);
+    all[school] = meta;
+    this._setAllMeta(all);
   },
 };

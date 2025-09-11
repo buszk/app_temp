@@ -31,6 +31,7 @@ function refreshSchoolsUI() {
       storage.removeSchool(s);
       refreshSchoolsUI();
       refreshSchoolSelect();
+      refreshManageSelect();
     });
     li.appendChild(name);
     li.appendChild(del);
@@ -51,6 +52,19 @@ function refreshSchoolSelect() {
   loadVariantForSelected();
 }
 
+function refreshManageSelect() {
+  const sel = document.getElementById('school-manage-select');
+  if (!sel) return;
+  const schools = storage.getSchools();
+  sel.innerHTML = '';
+  for (const s of schools) {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  }
+  loadManageDetails();
+}
+
 function initTemplate() {
   const t = storage.getTemplate();
   $('#template-input').value = t;
@@ -67,6 +81,7 @@ function initTemplate() {
 function showTemplateStatus(msg) { $('#template-status').textContent = msg; setTimeout(()=> $('#template-status').textContent = '', 1200); }
 function showCommitStatus(msg) { $('#commit-status').textContent = msg; setTimeout(()=> $('#commit-status').textContent = '', 1600); }
 function showImportStatus(msg) { const el = document.getElementById('import-status'); if (el) { el.textContent = msg; setTimeout(()=> el.textContent = '', 1600); } }
+function showFallbackStatus(msg) { const el = document.getElementById('fallback-status'); if (el) { el.textContent = msg; setTimeout(()=> el.textContent = '', 1600); } }
 function showOpenAIStatus(msg) { const el = document.getElementById('openai-status'); if (el) { el.textContent = msg; setTimeout(()=> el.textContent = '', 1200); } }
 function showPromptStatus(msg) { const el = document.getElementById('prompt-status'); if (el) { el.textContent = msg; setTimeout(()=> el.textContent = '', 1200); } }
 
@@ -109,6 +124,7 @@ async function onCommit() {
   const school = $('#school-select').value || '';
   if (!school) { alert('Select a school first.'); return; }
   const content = $('#mod-text').value || '';
+  if (!confirm(`Commit variant for "${school}" to disk?\nPlease review the diff before confirming.`)) return;
   try {
     await fsapi.writeVariant(school, content);
     storage.setVariant(school, content);
@@ -173,6 +189,33 @@ function initEvents() {
   const importBtn = document.getElementById('import-variants');
   if (importBtn) importBtn.addEventListener('click', onImport);
 
+  // Fallback actions: Download and Copy
+  const dlBtn = document.getElementById('download-variant');
+  if (dlBtn) dlBtn.addEventListener('click', () => {
+    const school = $('#school-select').value || 'school';
+    const content = $('#mod-text').value || '';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'personal_statement.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showFallbackStatus(`Downloaded for ${school}.`);
+  });
+
+  const copyBtn = document.getElementById('copy-variant');
+  if (copyBtn) copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText($('#mod-text').value || '');
+      showFallbackStatus('Copied to clipboard.');
+    } catch (e) {
+      alert('Copy failed: ' + (e.message || String(e)));
+    }
+  });
+
   // Optional: Save OpenAI API key
   const saveKeyBtn = document.getElementById('save-openai-key');
   if (saveKeyBtn) {
@@ -192,6 +235,68 @@ function initEvents() {
       showPromptStatus('Prompt saved.');
     });
   }
+  const resetPromptBtn = document.getElementById('reset-prompt');
+  if (resetPromptBtn) {
+    resetPromptBtn.addEventListener('click', () => {
+      storage.resetPrompt();
+      const promptEl = document.getElementById('prompt-input');
+      if (promptEl) promptEl.value = storage.getPrompt(); // will be DEFAULT_PROMPT
+      showPromptStatus('Prompt reset to default.');
+    });
+  }
+
+  // Schools management: research and tags
+  const manageSelect = document.getElementById('school-manage-select');
+  if (manageSelect) {
+    manageSelect.addEventListener('change', loadManageDetails);
+  }
+  const saveResearchBtn = document.getElementById('save-research');
+  if (saveResearchBtn) {
+    saveResearchBtn.addEventListener('click', () => {
+      const sel = document.getElementById('school-manage-select');
+      const school = sel?.value || '';
+      const research = (document.getElementById('school-research')?.value || '');
+      if (!school) { alert('Select a school.'); return; }
+      storage.setSchoolResearch(school, research);
+      const el = document.getElementById('research-status');
+      if (el) { el.textContent = 'Research saved.'; setTimeout(()=> el.textContent = '', 1200); }
+    });
+  }
+  const addTagBtn = document.getElementById('add-tag');
+  if (addTagBtn) {
+    const addTag = () => {
+      const sel = document.getElementById('school-manage-select');
+      const school = sel?.value || '';
+      const input = document.getElementById('school-tag-input');
+      if (!school) { alert('Select a school.'); return; }
+      const raw = input?.value || '';
+      const parts = raw.split(/[\,\n]/g).map(s => s.trim()).filter(Boolean);
+      for (const p of parts) storage.addSchoolTag(school, p);
+      input.value = '';
+      renderTags();
+    };
+    addTagBtn.addEventListener('click', addTag);
+    const tagInput = document.getElementById('school-tag-input');
+    if (tagInput) {
+      tagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addTag(); }
+      });
+    }
+  }
+  const tagsEl = document.getElementById('school-tags');
+  if (tagsEl) {
+    tagsEl.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.matches('button[data-tag]')) {
+        const tag = t.getAttribute('data-tag') || '';
+        const sel = document.getElementById('school-manage-select');
+        const school = sel?.value || '';
+        if (!school) return;
+        storage.removeSchoolTag(school, tag);
+        renderTags();
+      }
+    });
+  }
 }
 
 function bootstrap() {
@@ -199,6 +304,7 @@ function bootstrap() {
   initTemplate();
   refreshSchoolsUI();
   refreshSchoolSelect();
+  refreshManageSelect();
   updateDiff();
   initEvents();
   // Optional: pick up a global key if present
@@ -209,7 +315,40 @@ function bootstrap() {
       if (keyEl) keyEl.value = String(window.OPENAI_API_KEY);
     }
   } catch {}
-  if (!fsapi.isSupported()) $('#root-path').textContent = 'File System Access API not supported in this browser. Use a Chromium browser over http(s).';
+  if (!fsapi.isSupported()) {
+    $('#root-path').textContent = 'File System Access API not supported. Use Download/Copy fallback.';
+    const choose = document.getElementById('choose-root');
+    const commit = document.getElementById('commit-variant');
+    if (choose) choose.disabled = true;
+    if (commit) commit.disabled = true;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
+
+function loadManageDetails() {
+  const sel = document.getElementById('school-manage-select');
+  const school = sel?.value || '';
+  const researchEl = document.getElementById('school-research');
+  if (!school || !researchEl) return;
+  const meta = storage.getSchoolMeta(school);
+  researchEl.value = meta.research || '';
+  renderTags();
+}
+
+function renderTags() {
+  const sel = document.getElementById('school-manage-select');
+  const school = sel?.value || '';
+  const tagsEl = document.getElementById('school-tags');
+  if (!tagsEl) return;
+  tagsEl.innerHTML = '';
+  if (!school) return;
+  const meta = storage.getSchoolMeta(school);
+  const tags = Array.isArray(meta.tags) ? meta.tags : [];
+  for (const tag of tags) {
+    const span = document.createElement('span');
+    span.className = 'tag';
+    span.innerHTML = `${tag} <button data-tag="${tag}" title="Remove">×</button>`;
+    tagsEl.appendChild(span);
+  }
+}

@@ -44,6 +44,26 @@
           <button id="add-school">Add</button>
         </div>
         <ul id="school-list" class="list"></ul>
+
+        <h3 style="margin-top:16px">School Details</h3>
+        <div class="row wrap">
+          <label for="school-manage-select">Edit details for:</label>
+          <select id="school-manage-select"></select>
+        </div>
+        <label for="school-research"><strong>Research Findings (authoritative)</strong></label>
+        <textarea id="school-research" placeholder="Paste your vetted facts about the school: programs, mission, partnerships, stats, etc."></textarea>
+        <div class="row">
+          <button id="save-research">Save Research</button>
+          <span id="research-status" class="status"></span>
+        </div>
+        <div style="margin-top:8px">
+          <label for="school-tag-input"><strong>Tags</strong> (comma or Enter to add)</label>
+          <div class="row wrap">
+            <input id="school-tag-input" placeholder="e.g. research school, community school" />
+            <button id="add-tag">Add Tag</button>
+          </div>
+          <div id="school-tags" class="tags"></div>
+        </div>
       </section>
 
       <section id="tab-customize" class="tab">
@@ -57,10 +77,11 @@
         </div>
 
         <div style="margin: 8px 0 4px;">
-          <label for="prompt-input"><strong>Prompt Template</strong> (uses {{SCHOOL}} and {{TEMPLATE}}):</label>
+          <label for="prompt-input"><strong>Prompt Template</strong> (uses {{SCHOOL}}, {{TEMPLATE}}, {{RESEARCH}}, {{TAGS}}):</label>
           <textarea id="prompt-input" placeholder="Edit the prompt used to guide the LLM..."></textarea>
           <div class="row">
             <button id="save-prompt">Save Prompt</button>
+            <button id="reset-prompt">Reset to Default</button>
             <span id="prompt-status" class="status"></span>
           </div>
         </div>
@@ -92,6 +113,11 @@
         <div class="row">
           <button id="commit-variant">Commit to School Folder</button>
           <span id="commit-status" class="status"></span>
+        </div>
+        <div class="row wrap">
+          <button id="download-variant">Download Variant</button>
+          <button id="copy-variant">Copy to Clipboard</button>
+          <span id="fallback-status" class="status"></span>
         </div>
       </section>
     </main>

@@ -21,7 +21,9 @@ async function openaiChat({ apiKey, model, messages }) {
 function fillPrompt(tpl, values) {
   return tpl
     .replaceAll('{{SCHOOL}}', values.school || '')
-    .replaceAll('{{TEMPLATE}}', values.template || '');
+    .replaceAll('{{TEMPLATE}}', values.template || '')
+    .replaceAll('{{RESEARCH}}', values.research || '')
+    .replaceAll('{{TAGS}}', values.tags || '');
 }
 
 // Pluggable LLM adapter. Tries OpenAI if configured, otherwise local transform.
@@ -31,13 +33,20 @@ export const llm = {
     const key = storage.getOpenAIKey();
     const promptTpl = storage.getPrompt();
     const schoolName = (school || '').trim();
+    const meta = storage.getSchoolMeta(schoolName);
+    const tagsStr = (meta.tags || []).join(', ');
 
     const localText = template.replaceAll('<CUSTOMIZE_TO_SCHOOL>', schoolName);
     if (!key) {
       return { text: localText, usedOpenAI: false };
     }
 
-    const userPrompt = fillPrompt(promptTpl, { template, school: schoolName });
+    const userPrompt = fillPrompt(promptTpl, {
+      template,
+      school: schoolName,
+      research: meta.research || '',
+      tags: tagsStr,
+    });
     try {
       const model = 'gpt-4o-mini';
       const output = await openaiChat({
