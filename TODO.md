@@ -105,3 +105,10 @@ We are building an application management system to help medical school applican
 - Download Variant now pulls from the editor or saved variant, and warns if empty.
 - Copy to Clipboard works in secure and insecure contexts (fallback to execCommand), and pulls from saved variant if editor is empty.
 - Added "Download All Variants (ZIP)" using a minimal in-browser ZIP (store-only) implementation, packaging each saved variant under `School Name/personal_statement.txt`.
+
+## Task 6 - Fix UX to add school research details. [DONE]
+
+- When a new school is added, the School Details picker refreshes automatically and selects the newly added school.
+- Focus moves to the Research textarea so the user can start typing immediately.
+- Research textarea now autosaves on typing (debounced) and on blur. Switching schools saves the current research before loading the next.
+- For better ux, add automatic save of research details.

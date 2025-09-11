@@ -19,7 +19,7 @@ Usage
   - Prompt supports placeholders: `{{SCHOOL}}`, `{{TEMPLATE}}`, `{{RESEARCH}}`, `{{TAGS}}`. Use Reset to Default to restore the built-in prompt.
   - If File System Access API isn’t supported, use:
     - Download Variant / Copy to Clipboard for the current school.
-    - Download All Variants (ZIP) to get a zip with `School Name/personal_statement.txt` for each saved variant.
+    - Download All Variants (ZIP) to get a zip with `School Name/personal_statement.txt` for each saved variant; includes the current editor content for the selected school even if not saved yet.
   - Choose an export directory.
   - Import From Directory: scan the chosen directory for subfolders and load each `personal_statement.txt` back into the app as variants.
   - Commit to write `personal_statement.txt` into a folder named after the school and save the variant locally.
@@ -28,3 +28,4 @@ Usage
 Notes
 - No server storage; all data is local.
 - If the File System Access API is not supported, you’ll see a message. You can still generate and copy content manually.
+- "Download All Variants (ZIP)" uses JSZip from CDN. Ensure you are online when downloading the ZIP; or vendor JSZip locally if you need offline use.

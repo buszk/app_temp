@@ -2,10 +2,14 @@ import { storage, DEFAULT_PROMPT } from './storage.js';
 import { fsapi } from './fs.js';
 import { llm } from './llm.js';
 import { computeDiff, renderDiff } from './diff.js';
-import { createZip } from './zip.js';
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+// Autosave state for research textarea
+let _suppressResearchSave = false;
+let _researchSaveTimer = null;
+let _lastManageSchool = '';
 
 function setActiveTab(id) {
   $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
@@ -124,14 +128,52 @@ async function onChooseRoot() {
 async function onCommit() {
   const school = $('#school-select').value || '';
   if (!school) { alert('Select a school first.'); return; }
-  const content = $('#mod-text').value || '';
+  let content = $('#mod-text').value || '';
+  if (!content.trim()) {
+    const stored = storage.getVariant(school);
+    if (stored && stored.trim()) content = stored;
+  }
+  if (!content.trim()) { alert('No content to commit. Generate or paste a variant first.'); return; }
   if (!confirm(`Commit variant for "${school}" to disk?\nPlease review the diff before confirming.`)) return;
   try {
+    // Ensure export directory is chosen; prompt if not yet selected
+    if (fsapi.isSupported && typeof fsapi.isSupported === 'function' && fsapi.isSupported() && (!fsapi.getRootName || !fsapi.getRootName())) {
+      try {
+        const name = await fsapi.chooseRoot();
+        const rootEl = document.getElementById('root-path');
+        if (rootEl && name) rootEl.textContent = `Chosen: ${name}`;
+      } catch (e) {
+        // If user cancels, fallback to download
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'personal_statement.txt';
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        storage.setVariant(school, content);
+        showCommitStatus('Saved locally. Downloaded file since no folder chosen.');
+        return;
+      }
+    }
     await fsapi.writeVariant(school, content);
     storage.setVariant(school, content);
-    showCommitStatus('Committed to folder.');
+    showCommitStatus('Committed to folder and saved locally.');
   } catch (e) {
-    alert(e.message || String(e));
+    // On error, still save locally and offer download fallback
+    storage.setVariant(school, content);
+    const msg = e?.message || String(e);
+    const proceed = confirm(`Writing to folder failed: ${msg}\nDownload the file instead?`);
+    if (proceed) {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'personal_statement.txt';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      showCommitStatus('Saved locally and downloaded file.');
+    } else {
+      alert(msg);
+    }
   }
 }
 
@@ -174,11 +216,21 @@ function initEvents() {
   });
 
   $('#add-school').addEventListener('click', () => {
-    const name = $('#school-name').value;
+    const raw = $('#school-name').value || '';
+    const name = raw.trim();
+    if (!name) return;
     storage.addSchool(name);
     $('#school-name').value = '';
     refreshSchoolsUI();
     refreshSchoolSelect();
+    refreshManageSelect();
+    const manageSel = document.getElementById('school-manage-select');
+    if (manageSel) {
+      manageSel.value = name;
+      loadManageDetails();
+      const researchEl = document.getElementById('school-research');
+      if (researchEl) researchEl.focus();
+    }
   });
 
   $('#generate-variant').addEventListener('click', onGenerateVariant);
@@ -244,28 +296,40 @@ function initEvents() {
     }
   });
 
-  // Download all variants as ZIP
+  // Download all variants as ZIP (via JSZip)
   const zipBtn = document.getElementById('download-zip-all');
-  if (zipBtn) zipBtn.addEventListener('click', () => {
-    const schools = storage.getSchools();
-    const files = [];
-    for (const s of schools) {
-      const v = storage.getVariant(s);
-      if (v && v.trim()) {
-        files.push({ path: `${s}/personal_statement.txt`, content: v });
+  if (zipBtn) zipBtn.addEventListener('click', async () => {
+    try {
+      const JSZipLib = window.JSZip;
+      if (!JSZipLib) { alert('ZIP library not loaded. Check your network connection.'); return; }
+      const zip = new JSZipLib();
+      const schools = storage.getSchools();
+      const selected = (document.getElementById('school-select')?.value || '').trim();
+      const editor = (document.getElementById('mod-text')?.value || '').trim();
+      for (const s of schools) {
+        let v = storage.getVariant(s);
+        if ((!v || !v.trim()) && editor && s === selected) {
+          v = editor; // include current editor content for selected school
+        }
+        if (v && v.trim()) {
+          zip.file(`${s}/personal_statement.txt`, v);
+        }
       }
+      const filesCount = Object.keys(zip.files).length;
+      if (!filesCount) { alert('No variants found (save or edit one first).'); return; }
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'personal_statements.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showFallbackStatus('Downloaded ZIP of all variants.');
+    } catch (err) {
+      alert('Failed to build ZIP: ' + (err?.message || String(err)));
     }
-    if (!files.length) { alert('No saved variants to include in ZIP.'); return; }
-    const zipBlob = createZip(files);
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'personal_statements.zip';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showFallbackStatus('Downloaded ZIP of all variants.');
   });
 
   // Optional: Save OpenAI API key
@@ -300,7 +364,15 @@ function initEvents() {
   // Schools management: research and tags
   const manageSelect = document.getElementById('school-manage-select');
   if (manageSelect) {
-    manageSelect.addEventListener('change', loadManageDetails);
+    manageSelect.addEventListener('change', () => {
+      // Save current research before switching
+      const prev = _lastManageSchool;
+      const researchEl = document.getElementById('school-research');
+      if (prev && researchEl) {
+        storage.setSchoolResearch(prev, researchEl.value || '');
+      }
+      loadManageDetails();
+    });
   }
   const saveResearchBtn = document.getElementById('save-research');
   if (saveResearchBtn) {
@@ -312,6 +384,29 @@ function initEvents() {
       storage.setSchoolResearch(school, research);
       const el = document.getElementById('research-status');
       if (el) { el.textContent = 'Research saved.'; setTimeout(()=> el.textContent = '', 1200); }
+    });
+  }
+  // Autosave research on input and blur
+  const researchEl = document.getElementById('school-research');
+  if (researchEl) {
+    const doSave = () => {
+      const sel = document.getElementById('school-manage-select');
+      const school = sel?.value || '';
+      if (!school) return;
+      const text = researchEl.value || '';
+      storage.setSchoolResearch(school, text);
+      const el = document.getElementById('research-status');
+      if (el) { el.textContent = 'Autosaved'; setTimeout(()=> el.textContent = '', 800); }
+    };
+    researchEl.addEventListener('input', () => {
+      if (_suppressResearchSave) return;
+      if (_researchSaveTimer) clearTimeout(_researchSaveTimer);
+      _researchSaveTimer = setTimeout(doSave, 600);
+    });
+    researchEl.addEventListener('blur', () => {
+      if (_suppressResearchSave) return;
+      if (_researchSaveTimer) { clearTimeout(_researchSaveTimer); _researchSaveTimer = null; }
+      doSave();
     });
   }
   const addTagBtn = document.getElementById('add-tag');
@@ -384,7 +479,10 @@ function loadManageDetails() {
   const researchEl = document.getElementById('school-research');
   if (!school || !researchEl) return;
   const meta = storage.getSchoolMeta(school);
+  _suppressResearchSave = true;
   researchEl.value = meta.research || '';
+  _suppressResearchSave = false;
+  _lastManageSchool = school;
   renderTags();
 }
 
