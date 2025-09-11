@@ -10,6 +10,8 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 let _suppressResearchSave = false;
 let _researchSaveTimer = null;
 let _lastManageSchool = '';
+// Autosave state for template textarea
+let _templateSaveTimer = null;
 
 function setActiveTab(id) {
   $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === id));
@@ -214,6 +216,26 @@ function initEvents() {
     updateDiff();
     showTemplateStatus('Saved.');
   });
+  // Autosave template on input and blur
+  const tplEl = document.getElementById('template-input');
+  if (tplEl) {
+    const doTplSave = () => {
+      const txt = tplEl.value || '';
+      storage.setTemplate(txt);
+      const orig = document.getElementById('orig-text');
+      if (orig) orig.value = txt;
+      updateDiff();
+      showTemplateStatus('Autosaved');
+    };
+    tplEl.addEventListener('input', () => {
+      if (_templateSaveTimer) clearTimeout(_templateSaveTimer);
+      _templateSaveTimer = setTimeout(doTplSave, 600);
+    });
+    tplEl.addEventListener('blur', () => {
+      if (_templateSaveTimer) { clearTimeout(_templateSaveTimer); _templateSaveTimer = null; }
+      doTplSave();
+    });
+  }
 
   $('#add-school').addEventListener('click', () => {
     const raw = $('#school-name').value || '';

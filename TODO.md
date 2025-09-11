@@ -111,4 +111,9 @@ We are building an application management system to help medical school applican
 - When a new school is added, the School Details picker refreshes automatically and selects the newly added school.
 - Focus moves to the Research textarea so the user can start typing immediately.
 - Research textarea now autosaves on typing (debounced) and on blur. Switching schools saves the current research before loading the next.
+
+## Task 7 - Add autosave to template [DONE]
+
+- Template textarea now autosaves on typing (debounced ~600ms) and on blur.
+- Autosave updates the Original Template pane and live diff immediately.
 - For better ux, add automatic save of research details.
