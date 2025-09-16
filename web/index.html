@@ -72,7 +72,10 @@
         <div class="row">
           <label for="school-select">Select school:</label>
           <select id="school-select"></select>
-          <button id="generate-variant">Generate Variant</button>
+          <button id="generate-variant" class="loading-btn" data-default-label="Generate Variant" data-loading-label="Generating...">
+            <span class="spinner hidden" aria-hidden="true"></span>
+            <span class="btn-text">Generate Variant</span>
+          </button>
           <span id="gen-status" class="status"></span>
         </div>
 

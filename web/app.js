@@ -101,21 +101,49 @@ function updateDiff() {
 async function onGenerateVariant() {
   const tmpl = $('#orig-text').value || '';
   const school = $('#school-select').value || '';
-  const result = await llm.generate(tmpl, school);
-  const text = typeof result === 'string' ? result : result.text;
-  const used = typeof result === 'object' && result.usedOpenAI;
-  const err = typeof result === 'object' && result.error;
-  $('#mod-text').value = text || '';
-  if (err) {
-    alert(`OpenAI error: ${err}`);
-  }
+  const btn = document.getElementById('generate-variant');
+  const spinner = btn ? btn.querySelector('.spinner') : null;
+  const btnText = btn ? btn.querySelector('.btn-text') : null;
   const genStatus = document.getElementById('gen-status');
-  if (genStatus) {
-    if (used) genStatus.textContent = 'Generated with OpenAI';
-    else genStatus.textContent = err ? 'Fell back (OpenAI error)' : 'Generated locally';
-    setTimeout(()=> genStatus.textContent = '', 1600);
+  if (genStatus) genStatus.textContent = '';
+  if (btn) {
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    btn.classList.add('loading');
   }
-  updateDiff();
+  if (spinner) spinner.classList.remove('hidden');
+  if (btn && btnText) {
+    const loadingLabel = btn.dataset.loadingLabel || 'Generating...';
+    btnText.textContent = loadingLabel;
+  }
+
+  try {
+    const result = await llm.generate(tmpl, school);
+    const text = typeof result === 'string' ? result : result.text;
+    const used = typeof result === 'object' && result.usedOpenAI;
+    const err = typeof result === 'object' && result.error;
+    $('#mod-text').value = text || '';
+    if (err) {
+      alert(`OpenAI error: ${err}`);
+    }
+    if (genStatus) {
+      if (used) genStatus.textContent = 'Generated with OpenAI';
+      else genStatus.textContent = err ? 'Fell back (OpenAI error)' : 'Generated locally';
+      setTimeout(()=> genStatus.textContent = '', 1600);
+    }
+    updateDiff();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.removeAttribute('aria-busy');
+      btn.classList.remove('loading');
+    }
+    if (spinner) spinner.classList.add('hidden');
+    if (btn && btnText) {
+      const defaultLabel = btn.dataset.defaultLabel || 'Generate Variant';
+      btnText.textContent = defaultLabel;
+    }
+  }
 }
 
 async function onChooseRoot() {
