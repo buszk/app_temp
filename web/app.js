@@ -356,13 +356,26 @@ function initEvents() {
       const schools = storage.getSchools();
       const selected = (document.getElementById('school-select')?.value || '').trim();
       const editor = (document.getElementById('mod-text')?.value || '').trim();
+      const usedNames = new Set();
+      const filenameForSchool = (name) => {
+        const cleaned = (name || 'school').trim().replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'school';
+        let candidate = `${cleaned}_variant.txt`;
+        let i = 2;
+        while (usedNames.has(candidate)) {
+          candidate = `${cleaned}_${i}_variant.txt`;
+          i++;
+        }
+        usedNames.add(candidate);
+        return candidate;
+      };
+
       for (const s of schools) {
         let v = storage.getVariant(s);
         if ((!v || !v.trim()) && editor && s === selected) {
           v = editor; // include current editor content for selected school
         }
         if (v && v.trim()) {
-          zip.file(`${s}/personal_statement.txt`, v);
+          zip.file(filenameForSchool(s), v);
         }
       }
       const filesCount = Object.keys(zip.files).length;
